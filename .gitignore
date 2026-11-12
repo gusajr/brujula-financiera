@@ -1,0 +1,20 @@
+# Dependencias y cachés locales
+node_modules/
+coverage/
+.cache/
+
+# Configuración de entorno y publicación privada
+.env
+.env.*
+!.env.example
+.openai/
+
+# Paquetes de publicación, registros y archivos temporales
+*-deploy.tar.gz
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# dist/ contiene el código y los datos que sirve la app.
