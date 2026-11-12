@@ -10,5 +10,5 @@ export function sizePosition(capital,r){
  if(r.entry<=0||r.stop<=0||r.stop>=r.entry||r.fx<=0)return {error:'Para una compra al contado, la entrada y el cambio deben ser positivos; el stop debe ser menor a la entrada.'};
  const remaining=Math.max(0,r.budget-r.realized-r.openRisk),available=Math.max(0,capital-r.invested),tradeBudget=Math.min(r.perTrade,remaining),unitRisk=(r.entry-r.stop+r.cost)*r.fx,unitCapital=(r.entry+r.cost)*r.fx;
  const qty=Math.max(0,Math.floor(Math.min(tradeBudget/unitRisk,available/unitCapital,(capital*r.concentration/100)/unitCapital)));
- return {remaining,available,tradeBudget,unitRisk,qty,allocation:qty*unitCapital,estimatedLoss:qty*unitRisk,totalPlannedRisk:r.realized+r.openRisk+qty*unitRisk,fullLoss:qty*unitCapital,budgetPercent:r.budget/capital*100};
+ return {remaining,available,tradeBudget,unitRisk,unitCapital,positionLimit:capital*r.concentration/100,qty,allocation:qty*unitCapital,estimatedLoss:qty*unitRisk,totalPlannedRisk:r.realized+r.openRisk+qty*unitRisk,fullLoss:qty*unitCapital,budgetPercent:r.budget/capital*100};
 }
