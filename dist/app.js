@@ -33,7 +33,7 @@ function render() {
     if (state.risk && state.risk.currency !== profile.currency) state.risk=undefined;
     const candidates = candidatesPanel(market,state,d);
     const stockSection = d.priority ? `<details class="card strategy-card" id="stock-later"><summary>Explorar bolsa más adelante</summary>${candidates}${riskPanel(state,d)}</details>` : candidates + riskPanel(state,d);
-    $('#priority-plan').closest('section').insertAdjacentHTML('afterend',debtPanel(profile,d)+suggestedPanel(profile,d,state.rules)+distributionPanel(state)+fixedIncomePanel(profile)+`<div class="notice"><b>¿Te han dicho que invertir es arriesgado?</b> El precio puede bajar y podrías necesitar el dinero antes de recuperarlo. Revisa tu horizonte y cuánto puedes perder antes de evaluar bolsa.</div>`+stockSection);
+    $('#priority-plan').closest('section').insertAdjacentHTML('afterend',debtPanel(profile,d,state.rules)+suggestedPanel(profile,d,state.rules)+distributionPanel(state)+fixedIncomePanel(profile)+`<div class="notice"><b>¿Te han dicho que invertir es arriesgado?</b> El precio puede bajar y podrías necesitar el dinero antes de recuperarlo. Revisa tu horizonte y cuánto puedes perder antes de evaluar bolsa.</div>`+stockSection);
     bindRisk(state,r=>{state.risk=r;save();render();openRisk();toast('Límites y simulación guardados');});
   }
   bind();

@@ -4,20 +4,40 @@ import {allocationAmounts, allocationLabels, orderDebts, payoff, suggestedAlloca
 const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
 const money = (value, currency) => `${value.toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2})} ${esc(currency)}`;
 
-export function debtPanel(profile, diagnosis) {
+function allocationScenario(profile, diagnosis, rules, source) {
+  const amount = source === 'monthly' ? Math.max(0,diagnosis.free) : profile.capital;
+  const suggestion = suggestedAllocation(profile,diagnosis,amount || 1,rules.months);
+  const weights = profile.allocationChoices?.[source] || suggestion.weights;
+  return {suggestion,weights,amounts:allocationAmounts(amount,weights)};
+}
+
+export function debtProjection(profile, extra) {
+  const first = orderDebts(profile.debtItems || [],profile.debtMethod)[0];
+  if (!first) return null;
+  const current = payoff(first.balance,first.rate,first.payment);
+  const accelerated = extra > 0 ? payoff(first.balance,first.rate,first.payment+extra) : current;
+  return {first,extra,current,accelerated,interestSaved:current && accelerated ? Math.max(0,current.interest-accelerated.interest) : null};
+}
+
+function projectionText(profile, extra) {
+  if (extra === null) return 'Corrige los porcentajes de la distribución mensual para actualizar la estimación.';
+  const result = debtProjection(profile,extra);
+  if (!result) return '';
+  const {first,current,accelerated,interestSaved} = result;
+  const prefix = `Pago extra mensual según la distribución: ${money(extra,profile.currency)} a ${esc(first.label)}.`;
+  if (!extra) return `${prefix} ${current ? `Plazo estimado con el pago actual: ${current.months} meses.` : 'El pago actual no permite estimar un plazo de liquidación.'}`;
+  if (!accelerated) return `${prefix} Con ese pago no se puede estimar un plazo de liquidación.`;
+  return `${prefix} Plazo estimado: ${current ? `${current.months} meses con el pago actual y ` : ''}${accelerated.months} meses con el pago extra. ${interestSaved === null ? 'No hay un plazo base comparable.' : `Interés evitado estimado: ${money(interestSaved,profile.currency)}.`}`;
+}
+
+export function debtPanel(profile, diagnosis, rules) {
   if (!profile.debt && !profile.debtPayment) return '<p class="muted">Sin deudas registradas.</p>';
   if (!profile.debtItems?.length) return '<section class="card strategy-card"><h2>Orden de pago de deudas</h2><p>Completa las tasas y pagos mínimos para comparar costos y plazos.</p><button class="secondary" data-go="diagnostico">Completar detalle de deudas</button></section>';
   const method = profile.debtMethod || 'avalanche';
   const ordered = orderDebts(profile.debtItems,method);
-  const mostExpensive = orderDebts(profile.debtItems)[0];
-  const free = Math.max(0,diagnosis.free);
-  const current = payoff(mostExpensive.balance,mostExpensive.rate,mostExpensive.payment);
-  const accelerated = payoff(mostExpensive.balance,mostExpensive.rate,mostExpensive.payment+free);
   const first = ordered[0];
-  const weights = profile.allocationChoices?.monthly || suggestedAllocation(profile,diagnosis,free || 1,0).weights;
-  const extra = Math.min(first.balance,allocationAmounts(free,weights).debt);
-  const estimate = current && accelerated && free>0 ? `En ${esc(mostExpensive.label)}, aplicar ${money(free,profile.currency)} extra al mes reduciría el plazo de ${current.months} a ${accelerated.months} meses y evitaría aproximadamente ${money(Math.max(0,current.interest-accelerated.interest),profile.currency)} de interés.` : 'Para comparar el interés evitado hacen falta excedente mensual y un pago actual que reduzca el saldo.';
-  return `<section class="card strategy-card"><h2>Orden de pago de deudas</h2><p>Mantén los pagos mínimos de todas las deudas. El método elegido indica dónde concentrar el pago extra.</p><label>Método <select id="debt-method"><option value="avalanche" ${method==='avalanche'?'selected':''}>Avalancha · tasa más alta primero</option><option value="snowball" ${method==='snowball'?'selected':''}>Bola de nieve · saldo más bajo primero</option></select></label><p style="margin-top:16px"><b>Primero: ${esc(first.label)}</b>. Saldo ${money(first.balance,profile.currency)}. Pago actual ${money(first.payment,profile.currency)} al mes. La distribución mensual asigna ${money(extra,profile.currency)} de pago extra. ${method==='snowball'?'Es el saldo más pequeño.':`Tiene la tasa más alta registrada (${first.rate}% anual).`}</p><div class="table-scroll"><table><thead><tr><th>Deuda</th><th>Saldo</th><th>Tasa anual</th><th>Pago actual / mínimo</th><th>Meses estimados</th></tr></thead><tbody>${ordered.map(item=>{const estimate=payoff(item.balance,item.rate,item.payment);return `<tr><td>${esc(item.label)}</td><td>${money(item.balance,profile.currency)}</td><td>${item.rate}%</td><td>${money(item.payment,profile.currency)} / ${money(item.minimum,profile.currency)}</td><td>${estimate?.months ?? 'Pago insuficiente o plazo mayor a 100 años'}</td></tr>`;}).join('')}</tbody></table></div><p style="margin-top:14px">${estimate}</p><p class="chart-note">Estimación con tasa anual nominal dividida entre 12, interés mensual sobre el saldo y pagos constantes al cierre de cada mes. Excluye comisiones, compras nuevas y penalizaciones por prepago.</p><a class="text-button" href="https://files.consumerfinance.gov/f/documents/cfpb_ymyg_a-financial-empowerment-toolkit_large-print.pdf" target="_blank" rel="noopener">Métodos de pago · CFPB ↗</a></section>`;
+  const extra = allocationScenario(profile,diagnosis,rules,'monthly').amounts.debt;
+  return `<section class="card strategy-card"><h2>Orden de pago de deudas</h2><p>Mantén los pagos mínimos de todas las deudas. El método elegido indica dónde concentrar el pago extra.</p><label>Método <select id="debt-method"><option value="avalanche" ${method==='avalanche'?'selected':''}>Avalancha · tasa más alta primero</option><option value="snowball" ${method==='snowball'?'selected':''}>Bola de nieve · saldo más bajo primero</option></select></label><p style="margin-top:16px"><b>Primero: ${esc(first.label)}</b>. Saldo ${money(first.balance,profile.currency)}. Pago actual ${money(first.payment,profile.currency)} al mes. ${method==='snowball'?'Es el saldo más pequeño.':`Tiene la tasa más alta registrada (${first.rate}% anual).`}</p><div class="table-scroll"><table><thead><tr><th>Deuda</th><th>Saldo</th><th>Tasa anual</th><th>Pago actual / mínimo</th><th>Meses estimados</th></tr></thead><tbody>${ordered.map(item=>{const estimate=payoff(item.balance,item.rate,item.payment);return `<tr><td>${esc(item.label)}</td><td>${money(item.balance,profile.currency)}</td><td>${item.rate}%</td><td>${money(item.payment,profile.currency)} / ${money(item.minimum,profile.currency)}</td><td>${estimate?.months ?? 'Pago insuficiente o plazo mayor a 100 años'}</td></tr>`;}).join('')}</tbody></table></div><p id="debt-projection" aria-live="polite" style="margin-top:14px">${projectionText(profile,extra)}</p><p class="chart-note">Estimación con tasa anual nominal dividida entre 12, interés mensual sobre el saldo y pagos constantes al cierre de cada mes. Excluye comisiones, compras nuevas y penalizaciones por prepago.</p><a class="text-button" href="https://files.consumerfinance.gov/f/documents/cfpb_ymyg_a-financial-empowerment-toolkit_large-print.pdf" target="_blank" rel="noopener">Métodos de pago · CFPB ↗</a></section>`;
 }
 
 export function fixedIncomePanel(profile) {
@@ -37,9 +57,7 @@ export function suggestedPanel(profile, diagnosis, rules) {
   const active = sources[profile.allocationSource]>0 ? profile.allocationSource : sources.monthly>0 ? 'monthly' : 'capital';
   const amount = sources[active];
   if (!amount) return '<section class="card strategy-card"><h2>Tu distribución sugerida</h2><p>Cuando registres excedente mensual o capital adicional podrás distribuirlo aquí.</p></section>';
-  const suggestion = suggestedAllocation(profile,diagnosis,amount,rules.months);
-  const weights = profile.allocationChoices?.[active] || suggestion.weights;
-  const amounts = allocationAmounts(amount,weights);
+  const {suggestion,weights,amounts} = allocationScenario(profile,diagnosis,rules,active);
   const first = orderDebts(profile.debtItems||[], profile.debtMethod)[0];
   const notes = {reserve:`Meta de ${rules.months} meses`,debt:first?`Primero a ${esc(first.label)}`:'Según el método de pago',fixed:'Según moneda y horizonte',stocks:'Sujeto a los límites de riesgo',cash:'Disponible para necesidades próximas'};
   return `<section class="card strategy-card"><h2>Tu distribución sugerida</h2><p>Orientación de presupuesto. Revisa cada instrumento y sus riesgos antes de decidir.</p><label>Distribuir <select id="allocation-source">${Object.entries(sources).filter(([,total])=>total>0).map(([key,total])=>`<option value="${key}" ${key===active?'selected':''}>${key==='monthly'?'Excedente mensual':'Capital adicional'} · ${money(total,profile.currency)}</option>`).join('')}</select></label><p class="chart-note" style="margin-top:12px">Cada base es un escenario separado. Si combinas ambas, revisa cuánto falta para cada meta antes de asignar dinero.</p><p class="muted">${esc(suggestion.reason)} ${profile.allocationChoices?.[active]?'Estás viendo tus porcentajes guardados.':''}</p><form id="allocation-${active}" data-allocation-form data-source="${active}" data-amount="${amount}"><div class="table-scroll"><table><thead><tr><th>Destino</th><th>Porcentaje</th><th>Monto</th></tr></thead><tbody>${Object.entries(allocationLabels).map(([key,label])=>`<tr><td>${label}<br><small class="muted">${notes[key]}</small></td><td><input name="${key}" type="number" aria-label="Porcentaje de ${label}" min="0" max="100" step="0.01" value="${weights[key]}" required> %</td><td data-allocation="${key}">${money(amounts[key],profile.currency)}</td></tr>`).join('')}</tbody></table></div><p data-weight-total role="status">Total: 100% · ${money(amount,profile.currency)}</p><button class="primary">Guardar distribución</button> <button type="button" class="secondary" id="restore-suggestion">Usar porcentajes sugeridos</button></form><p class="chart-note" style="margin-top:12px">Revisa esta distribución cuando cambie tu ingreso, tu deuda o tu reserva.</p></section>`;
@@ -60,10 +78,15 @@ export function bindFinancialStrategy(profile, commit) {
     const valid = fields.every(field=>Number.isFinite(weights[field])&&weights[field]>=0&&weights[field]<=100);
     const sum = fields.reduce((total,field)=>total+(weights[field]||0),0);
     const complete = valid && Math.abs(sum-100)<1e-7;
-    const amounts = complete ? allocationAmounts(amount,weights) : Object.fromEntries(fields.map(field=>[field,amount*(weights[field]||0)/100]));
+    const amounts = complete ? allocationAmounts(amount,weights) : Object.fromEntries(fields.map(field=>[field,Math.round(amount*(weights[field]||0))/100]));
     for (const field of fields) form.querySelector(`[data-allocation="${field}"]`).textContent = money(amounts[field],profile.currency);
     form.querySelector('[data-weight-total]').textContent = `Total: ${Number(sum.toFixed(2))}% · ${money(amount*sum/100,profile.currency)}${complete?'':'. Ajusta los porcentajes para que sumen 100%.'}`;
     form.querySelector('button.primary').disabled = !complete;
+    const projection = document.querySelector('#debt-projection');
+    if (projection && key === 'monthly') {
+      projection.innerHTML = projectionText(profile,valid ? amounts.debt : null);
+      if (valid && !complete) projection.append(' Vista previa. Ajusta el total a 100% para guardar.');
+    }
     return complete ? weights : null;
   };
   form.oninput = refresh;

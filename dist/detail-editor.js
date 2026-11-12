@@ -8,8 +8,13 @@ const titles = {incomeItems:'Fuentes de ingreso',expenseItems:'Gastos por rubro'
 
 export function detailEditor(kind, profile, scope) {
   const draft = exportDrafts()[`details-${scope}-${kind}`];
-  const rows = draft?.currency === profile.currency && Array.isArray(draft.rows) ? draft.rows : profile[kind] ?? initialRows(kind,profile);
-  return `<fieldset class="detail-editor" data-editor="${kind}" data-scope="${scope}" data-currency="${esc(profile.currency)}"><legend>${titles[kind]}</legend><p class="chart-note">${kind==='debtItems'?'Registra saldo, tasa, pago actual y mínimo de cada deuda. Los totales se actualizan con este detalle.':'Usa una fila por concepto. Quita los rubros que no uses o escribe 0.'}</p><div data-rows>${rows.map(row=>rowHtml(kind,row)).join('')}</div><button type="button" class="secondary" data-add-row>Agregar ${kind==='incomeItems'?'fuente':kind==='debtItems'?'deuda':'rubro'}</button><p class="detail-total" data-total aria-live="polite"></p><label data-zero hidden><input type="checkbox" data-confirm-zero ${draft?.confirmed?'checked':''}> ${kind==='debtItems'?'Confirmo que ya no tengo deudas.':'Confirmo que el total es cero.'}</label><p class="field-error" data-editor-error role="alert"></p></fieldset>`;
+  const saved = profile[kind];
+  const baseline = JSON.stringify(saved ?? null);
+  // An older edit draft has no baseline and may predate the completed debt step.
+  const compatible = kind !== 'debtItems' || scope !== 'edit' || !saved?.length || draft?.baseline === baseline;
+  const useDraft = compatible && draft?.currency === profile.currency && Array.isArray(draft.rows);
+  const rows = useDraft ? draft.rows : saved ?? initialRows(kind,profile);
+  return `<fieldset class="detail-editor" data-editor="${kind}" data-scope="${scope}" data-baseline="${esc(baseline)}" data-currency="${esc(profile.currency)}"><legend>${titles[kind]}</legend><p class="chart-note">${kind==='debtItems'?'Registra saldo, tasa, pago actual y mínimo de cada deuda. Los totales se actualizan con este detalle.':'Usa una fila por concepto. Quita los rubros que no uses o escribe 0.'}</p><div data-rows>${rows.map(row=>rowHtml(kind,row)).join('')}</div><button type="button" class="secondary" data-add-row>Agregar ${kind==='incomeItems'?'fuente':kind==='debtItems'?'deuda':'rubro'}</button><p class="detail-total" data-total aria-live="polite"></p><label data-zero hidden><input type="checkbox" data-confirm-zero ${useDraft&&draft.confirmed?'checked':''}> ${kind==='debtItems'?'Confirmo que ya no tengo deudas.':'Confirmo que el total es cero.'}</label><p class="field-error" data-editor-error role="alert"></p></fieldset>`;
 }
 
 function initialRows(kind, profile) {
@@ -54,7 +59,7 @@ export function bindDetailEditors() {
   for (const editor of document.querySelectorAll('[data-editor]')) {
     const update = () => {
       const confirmed = editor.querySelector('[data-confirm-zero]').checked;
-      updateDraft(`details-${editor.dataset.scope}-${editor.dataset.editor}`, {rows:readRows(editor),currency:editor.dataset.currency,confirmed});
+      updateDraft(`details-${editor.dataset.scope}-${editor.dataset.editor}`, {rows:readRows(editor),currency:editor.dataset.currency,baseline:editor.dataset.baseline,confirmed});
       editorResult(editor,false);
     };
     editor.addEventListener('input',update);
