@@ -1,0 +1,44 @@
+{
+  "actualizado": null,
+  "datos": {
+    "cetes28": {
+      "valor": 6.2,
+      "fecha": "2026-11-12",
+      "fuente": "Banxico SIE",
+      "tipoFecha": "colocación"
+    },
+    "cetes91": {
+      "valor": 6.47,
+      "fecha": "2026-11-12",
+      "fuente": "Banxico SIE",
+      "tipoFecha": "colocación"
+    },
+    "cetes182": {
+      "valor": 6.61,
+      "fecha": "2026-11-12",
+      "fuente": "Banxico SIE",
+      "tipoFecha": "colocación"
+    },
+    "cetes364": {
+      "valor": 6.95,
+      "fecha": "2026-11-12",
+      "fuente": "Banxico SIE",
+      "tipoFecha": "colocación"
+    },
+    "tiie28": {
+      "valor": 6.5147,
+      "fecha": "2026-11-10",
+      "fuente": "Banxico SIE"
+    },
+    "objective": {
+      "valor": 6.25,
+      "fecha": "2026-11-12",
+      "fuente": "Banxico SIE"
+    },
+    "fix": {
+      "valor": 18.6192,
+      "fecha": "2026-11-11",
+      "fuente": "Banxico SIE"
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "mes": "2026-10",
+  "monto": 20000,
+  "plazo": 12,
+  "ingresoReferencia": 10000,
+  "periodicidad": "mensual",
+  "fuente": "CONDUSEF",
+  "filas": [
+    [
+      "Acción Evolución",
+      "Personal",
+      53,
+      85,
+      2295.2,
+      27429.94
+    ],
+    [
+      "BanCoppel",
+      "Personal",
+      76,
+      108.9,
+      2564.76,
+      30777.16
+    ],
+    [
+      "Caja Morelia Valladolid",
+      "Personal",
+      50.28,
+      79.1,
+      2638.75,
+      26386.03
+    ],
+    [
+      "Caja Popular Mexicana",
+      "Personal",
+      36,
+      51.3,
+      2067.24,
+      24758.28
+    ],
+    [
+      "Consupago",
+      "Personal",
+      107.67,
+      172.9,
+      2994.2,
+      36162.35
+    ],
+    [
+      "Financiera Kronos",
+      "Personal",
+      108,
+      192,
+      2998.82,
+      36385.88
+    ],
+    [
+      "HSBC",
+      "Personal",
+      38.99,
+      52,
+      2143.22,
+      25596.9
+    ],
+    [
+      "Santander",
+      "Personal",
+      60,
+      114.6,
+      2416.51,
+      31278.59
+    ],
+    [
+      "Scotiabank",
+      "Personal",
+      50.1,
+      71.1,
+      2245.1,
+      27405.23
+    ],
+    [
+      "Unagra",
+      "Personal",
+      35.42,
+      51.5,
+      2351.45,
+      25194.67
+    ],
+    [
+      "Banamex",
+      "Nómina",
+      43,
+      52.6,
+      2194.51,
+      25751.4
+    ],
+    [
+      "BBVA",
+      "Nómina",
+      37.45,
+      45.8,
+      2084.34,
+      25099.23
+    ],
+    [
+      "Banorte",
+      "Nómina",
+      45,
+      63.8,
+      2174.54,
+      26663.93
+    ],
+    [
+      "HSBC",
+      "Nómina",
+      39.99,
+      53.5,
+      2155.97,
+      25737.3
+    ],
+    [
+      "Inbursa",
+      "Nómina",
+      31,
+      35.8,
+      2008.84,
+      24106.1
+    ]
+  ]
+}

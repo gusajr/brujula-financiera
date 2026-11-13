@@ -67,6 +67,23 @@ export function payoff(balance, annualRate, payment) {
 }
 
 export const allocationLabels = {reserve:'Reserva de emergencia', debt:'Pago extra a deudas', fixed:'Renta fija / deuda', stocks:'Bolsa (acciones)', cash:'Sin asignar / liquidez'};
+export const hasRecordedDebt = profile => profile.debt > 0 || profile.debtPayment > 0 || Boolean(profile.debtItems?.length);
+
+export function reconcileAllocation(weights, suggested, hasDebt) {
+  if (!weights) return suggested;
+  if (hasDebt || weights.debt === 0) return weights;
+  const cents = Math.round(weights.debt * 100);
+  const eligible = Object.keys(allocationLabels).filter(key => key !== 'debt' && suggested[key] > 0);
+  const total = eligible.reduce((sum,key) => sum + suggested[key],0);
+  const result = {...weights,debt:0};
+  let remaining = cents;
+  eligible.forEach((key,index)=>{
+    const add = index===eligible.length-1 ? remaining : Math.floor(cents*suggested[key]/total);
+    remaining -= add;
+    result[key] = (Math.round(weights[key]*100)+add)/100;
+  });
+  return result;
+}
 
 export function suggestedAllocation(profile, diagnosis, amount, monthCount) {
   const topRate = orderDebts(profile.debtItems || [])[0]?.rate;
